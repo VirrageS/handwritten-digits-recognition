@@ -1,4 +1,5 @@
 require 'nn'
+-- require 'cunn'
 require 'optim'
 require './load_dataset'
 require './cnn_model.lua'
@@ -7,17 +8,22 @@ torch.manualSeed(1)
 torch.setdefaulttensortype('torch.FloatTensor')
 
 op = xlua.OptionParser('process_videos.lua [options]')
-op:option{'-train', '--traing_data_size', action='store', dest='trainDataSize', help='directory to load videos', default=5000}
-op:option{'-test', '--test_data_size', action='store', dest='testDataSize', help='only load files of this extension', default=1000}
+op:option{'-train', '--traing_data_size', action='store', dest='trainDataSize', help='directory to load videos', default=60000}
+op:option{'-test', '--test_data_size', action='store', dest='testDataSize', help='only load files of this extension', default=10000}
 op:option{'-lr', '--learning_rate', action='store', dest='learningRate', help='folder to output files', default=0.05}
 op:option{'-b', '--batch_size', action='store',dest='batchSize', help='number of frames per batch', default=10}
+op:option{'-t', '--threads', action='store',dest='threads', help='', default=2}
+
 opt = op:parse()
 opt.batchSize = tonumber(opt.batchSize)
 opt.learningRate = tonumber(opt.learningRate)
+opt.threads = tonumber(opt.threads)
+
+torch.setnumthreads(opt.threads)
 
 -- load datasets
-trainData = loadDataset('data/train_32x32.t7')
-testData = loadDataset('data/test_32x32.t7')
+trainData = loadTrainDataset()
+testData = loadTestDataset()
 
 -- this matrix records the current confusion across classes
 classes = {'1','2','3','4','5','6','7','8','9','10'}
@@ -28,7 +34,7 @@ trainLogger = optim.Logger('train.log')
 testLogger = optim.Logger('test.log')
 
 -- load model
-model = cnn_model(classes)
+model = cnn_model(classes)--:cuda()
 
 -- retrieve parameters and gradients from model
 parameters, gradParameters = model:getParameters()
