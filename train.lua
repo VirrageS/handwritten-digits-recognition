@@ -7,12 +7,12 @@ require './cnn_model.lua'
 torch.manualSeed(1)
 torch.setdefaulttensortype('torch.FloatTensor')
 
-op = xlua.OptionParser('process_videos.lua [options]')
-op:option{'-train', '--traing_data_size', action='store', dest='trainDataSize', help='directory to load videos', default=60000}
-op:option{'-test', '--test_data_size', action='store', dest='testDataSize', help='only load files of this extension', default=10000}
-op:option{'-lr', '--learning_rate', action='store', dest='learningRate', help='folder to output files', default=0.05}
-op:option{'-b', '--batch_size', action='store',dest='batchSize', help='number of frames per batch', default=10}
-op:option{'-t', '--threads', action='store',dest='threads', help='', default=2}
+op = xlua.OptionParser('train.lua [options]')
+op:option{'-train_size', '--traing_data_size', action='store', dest='trainDataSize', help='size of training sets', default=60000}
+op:option{'-test_size', '--test_data_size', action='store', dest='testDataSize', help='size of testing sets', default=10000}
+op:option{'-rate', '--learning_rate', action='store', dest='learningRate', help='learning rate', default=0.05}
+op:option{'-batch', '--batch_size', action='store', dest='batchSize', help='number of sets in batch', default=10}
+op:option{'-t', '--threads', action='store', dest='threads', help='number of threads used by networks', default=2}
 
 opt = op:parse()
 opt.batchSize = tonumber(opt.batchSize)
@@ -29,10 +29,6 @@ testData = loadTestDataset()
 classes = {'1','2','3','4','5','6','7','8','9','10'}
 confusion = optim.ConfusionMatrix(classes)
 
--- log results to files
-trainLogger = optim.Logger('train.log')
-testLogger = optim.Logger('test.log')
-
 -- load model
 model = cnn_model(classes)--:cuda()
 
@@ -48,16 +44,10 @@ function train(dataset)
 		-- create mini batch
 		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
 		local targets = torch.Tensor(opt.batchSize)
-
 		local k = 1
 		for i = t, math.min(t + opt.batchSize - 1, opt.trainDataSize) do
-			local sample = dataset[i]
-			local input = sample[1]:clone()
-			local _,target = sample[2]:clone():max(1)
-
-			target = target:squeeze()
-			inputs[k] = input
-			targets[k] = target
+			inputs[k] = dataset[i][1]:clone() -- copy data
+			targets[k] = dataset[i][2]:clone():squeeze() -- copy label
 			k = k + 1
 		end
 
@@ -102,14 +92,21 @@ function train(dataset)
 end
 
 function test(dataset)
-	for t = 1, opt.testDataSize do
-		local sample = dataset[t]
-		local input = sample[1]:clone()
-		local _, target = sample[2]:clone():max(1)
-		target = target:squeeze()
+	for t = 1, opt.testDataSize, opt.batchSize do
+		-- create mini batch
+		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
+		local targets = torch.Tensor(opt.batchSize)
+		local k = 1
+		for i = t, math.min(t + opt.batchSize - 1, opt.testDataSize) do
+			inputs[k] = dataset[i][1]:clone() -- copy data
+			targets[k] = dataset[i][2]:clone():squeeze() -- copy label
+			k = k + 1
+		end
 
-		local predicted = model:forward(input)
-		confusion:add(predicted, target)
+		local predicted = model:forward(inputs)
+		for i = 1, opt.batchSize do
+			confusion:add(predicted[i], targets[i])
+		end
 
 		-- dispaly progress
 		xlua.progress(t, opt.testDataSize)
