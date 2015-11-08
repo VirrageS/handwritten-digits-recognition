@@ -1,2 +1,2 @@
 # handwritten-digits-recognition
-Neural network to recognise handwritten digits
+Neural network to recognize handwritten digits
