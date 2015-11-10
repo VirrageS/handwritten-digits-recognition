@@ -23,7 +23,6 @@ function cnn_model(classes) -- 99,22% on best iteration
 	model:add(nn.Dropout(0.5))
 
 	model:add(nn.Linear(1000, #classes))
-
 	model:add(nn.LogSoftMax())
 	return model
 end

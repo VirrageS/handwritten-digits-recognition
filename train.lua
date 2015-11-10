@@ -1,7 +1,8 @@
 require 'nn'
 require 'optim'
 require './load_dataset'
-require './cnn_model.lua'
+require './cnn_model'
+require './linear_model'
 
 torch.manualSeed(1)
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -29,7 +30,7 @@ classes = {'1','2','3','4','5','6','7','8','9','10'}
 confusion = optim.ConfusionMatrix(classes)
 
 -- load model
-model = cnn_model(classes)
+model = linear_model(classes)
 
 -- retrieve parameters and gradients from model
 parameters, gradParameters = model:getParameters()
