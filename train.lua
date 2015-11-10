@@ -25,8 +25,9 @@ torch.setnumthreads(opt.threads)
 trainData = loadTrainDataset()
 testData = loadTestDataset()
 
--- this matrix records the current confusion across classes
+-- classification classes
 classes = {'1','2','3','4','5','6','7','8','9','10'}
+-- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
 -- load model
@@ -60,6 +61,7 @@ function train(dataset)
 			-- reset gradients
 			gradParameters:zero()
 
+			-- compute outputs
 			local outputs = model:forward(inputs)
 			local f = criterion:forward(outputs, targets)
 
@@ -74,7 +76,7 @@ function train(dataset)
 			return f, gradParameters
 		end
 
-		-- Perform SGD step:
+		-- SGD step:
 		sgdState = sgdState or {
 			learningRate = opt.learningRate,
 			momentum = 0,
@@ -103,7 +105,9 @@ function test(dataset)
 			k = k + 1
 		end
 
+		-- predict
 		local predicted = model:forward(inputs)
+
 		for i = 1, opt.batchSize do
 			confusion:add(predicted[i], targets[i])
 		end
