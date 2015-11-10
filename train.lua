@@ -1,5 +1,4 @@
 require 'nn'
--- require 'cunn'
 require 'optim'
 require './load_dataset'
 require './cnn_model.lua'
@@ -30,7 +29,7 @@ classes = {'1','2','3','4','5','6','7','8','9','10'}
 confusion = optim.ConfusionMatrix(classes)
 
 -- load model
-model = cnn_model(classes)--:cuda()
+model = cnn_model(classes)
 
 -- retrieve parameters and gradients from model
 parameters, gradParameters = model:getParameters()
