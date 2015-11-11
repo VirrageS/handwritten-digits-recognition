@@ -13,11 +13,13 @@ op:option{'-test_size', '--test_data_size', action='store', dest='testDataSize',
 op:option{'-rate', '--learning_rate', action='store', dest='learningRate', help='learning rate', default=0.05}
 op:option{'-batch', '--batch_size', action='store', dest='batchSize', help='number of sets in batch', default=10}
 op:option{'-t', '--threads', action='store', dest='threads', help='number of threads used by networks', default=2}
+op:option{'-gpuid', '--enable_gpu', action='store', dest='gpuid', help='loads gpu (needs cunn and cutorch)', default=-1}
 
 opt = op:parse()
 opt.batchSize = tonumber(opt.batchSize)
 opt.learningRate = tonumber(opt.learningRate)
 opt.threads = tonumber(opt.threads)
+opt.gpuid = tonumber(opt.gpuid)
 
 torch.setnumthreads(opt.threads)
 
@@ -38,6 +40,30 @@ parameters, gradParameters = model:getParameters()
 
 -- loss functions
 criterion = nn.ClassNLLCriterion()
+
+
+
+-- load GPU
+if opt.gpuid >= 0 then
+	local ok, cunn = pcall(require, 'cunn')
+	local ok2, cutorch = pcall(require, 'cutorch')
+	if not ok then print('package cunn not found!') end
+	if not ok2 then print('package cutorch not found!') end
+	if ok and ok2 then
+		print('using CUDA on GPU ' .. opt.gpuid .. '...')
+		cutorch.setDevice(opt.gpuid + 1) -- note +1 to make it 0 indexed! sigh lua
+		cutorch.manualSeed(opt.seed)
+
+		-- convert models to cuda
+		model:cuda()
+		criterion:cuda()
+	else
+		print('If cutorch and cunn are installed, your CUDA toolkit may be improperly configured.')
+		print('Check your CUDA toolkit installation, rebuild cutorch and cunn, and try again.')
+		print('Falling back on CPU mode')
+		opt.gpuid = -1 -- overwrite user setting
+	end
+end
 
 
 function train(dataset)
