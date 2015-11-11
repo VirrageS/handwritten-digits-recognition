@@ -90,8 +90,8 @@ function train(dataset)
 			gradParameters:zero()
 
 			if opt.gpuid >= 0 then
-				inputs = inputs:float():cuda()
-				targets = targets:float():cuda()
+				inputs = inputs:double():cuda()
+				targets = targets:double():cuda()
 			end
 
 			-- compute outputs
@@ -139,8 +139,8 @@ function test(dataset)
 		end
 
 		if opt.gpuid >= 0 then
-			inputs = inputs:float():cuda()
-			targets = targets:float():cuda()
+			inputs = inputs:double():cuda()
+			targets = targets:double():cuda()
 		end
 
 		-- predict
