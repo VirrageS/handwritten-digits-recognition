@@ -98,16 +98,12 @@ function train(dataset)
 			local outputs = model:forward(inputs)
 			local f = criterion:forward(outputs, targets)
 
-			if opt.gpuid >= 0 then
-				outputs = outputs:float():cuda()
-			end
-
 			-- estimate df/dW
 			local df_do = criterion:backward(outputs, targets)
 			model:backward(inputs, df_do)
 
 			for i = 1, opt.batchSize do
-				confusion:add(outputs[i]:float(), targets[i]:float())
+				confusion:add(outputs[i], targets[i])
 			end
 
 			return f, gradParameters
