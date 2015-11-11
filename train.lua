@@ -72,6 +72,7 @@ function train(dataset)
 		-- create mini batch
 		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
 		local targets = torch.Tensor(opt.batchSize)
+
 		local k = 1
 		for i = t, math.min(t + opt.batchSize - 1, opt.trainDataSize) do
 			inputs[k] = dataset[i][1]:clone() -- copy data
@@ -87,6 +88,11 @@ function train(dataset)
 
 			-- reset gradients
 			gradParameters:zero()
+
+			if opt.gpuid >= 0 then
+				inputs = inputs:float():cuda()
+				targets = targets:float():cuda()
+			end
 
 			-- compute outputs
 			local outputs = model:forward(inputs)
@@ -130,6 +136,11 @@ function test(dataset)
 			inputs[k] = dataset[i][1]:clone() -- copy data
 			targets[k] = dataset[i][2]:clone():squeeze() -- copy label
 			k = k + 1
+		end
+
+		if opt.gpuid >= 0 then
+			inputs = inputs:float():cuda()
+			targets = targets:float():cuda()
 		end
 
 		-- predict
