@@ -90,20 +90,24 @@ function train(dataset)
 			gradParameters:zero()
 
 			if opt.gpuid >= 0 then
-				inputs = inputs:double():cuda()
-				targets = targets:double():cuda()
+				inputs = inputs:float():cuda()
+				targets = targets:float():cuda()
 			end
 
 			-- compute outputs
 			local outputs = model:forward(inputs)
 			local f = criterion:forward(outputs, targets)
 
+			if opt.gpuid >= 0 then
+				outputs = outputs:float():cuda()
+			end
+
 			-- estimate df/dW
 			local df_do = criterion:backward(outputs, targets)
 			model:backward(inputs, df_do)
 
 			for i = 1, opt.batchSize do
-				confusion:add(outputs[i], targets[i])
+				confusion:add(outputs[i]:float(), targets[i]:float())
 			end
 
 			return f, gradParameters
@@ -147,7 +151,7 @@ function test(dataset)
 		local predicted = model:forward(inputs)
 
 		for i = 1, opt.batchSize do
-			confusion:add(predicted[i], targets[i])
+			confusion:add(predicted[i]:float(), targets[i]:float())
 		end
 
 		-- dispaly progress
