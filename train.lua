@@ -34,15 +34,13 @@ classes = {'1','2','3','4','5','6','7','8','9','10'}
 confusion = optim.ConfusionMatrix(classes)
 
 -- load model
-model = linear_model(classes)
+model = cnn_model(classes)
 
 -- retrieve parameters and gradients from model
 parameters, gradParameters = model:getParameters()
 
 -- loss functions
 criterion = nn.ClassNLLCriterion()
-
-
 
 -- load GPU
 if opt.gpuid >= 0 then
@@ -54,16 +52,18 @@ if opt.gpuid >= 0 then
 		print('using CUDA on GPU ' .. opt.gpuid .. '...')
 		cutorch.setDevice(opt.gpuid + 1) -- note +1 to make it 0 indexed! sigh lua
 		cutorch.manualSeed(opt.seed)
-
-		-- convert models to cuda
-		model:cuda()
-		criterion:cuda()
 	else
 		print('If cutorch and cunn are installed, your CUDA toolkit may be improperly configured.')
 		print('Check your CUDA toolkit installation, rebuild cutorch and cunn, and try again.')
 		print('Falling back on CPU mode')
 		opt.gpuid = -1 -- overwrite user setting
 	end
+end
+
+if opt.gpuid >= 0 then
+	-- convert models to cuda
+	model:cuda()
+	criterion:cuda()
 end
 
 
@@ -139,15 +139,15 @@ function test(dataset)
 		end
 
 		if opt.gpuid >= 0 then
-			inputs = inputs:double():cuda()
-			targets = targets:double():cuda()
+			inputs = inputs:float():cuda()
+			targets = targets:float():cuda()
 		end
 
 		-- predict
 		local predicted = model:forward(inputs)
 
 		for i = 1, opt.batchSize do
-			confusion:add(predicted[i]:float(), targets[i]:float())
+			confusion:add(predicted[i], targets[i])
 		end
 
 		-- dispaly progress
