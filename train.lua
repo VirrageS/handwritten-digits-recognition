@@ -33,15 +33,6 @@ classes = {'1','2','3','4','5','6','7','8','9','10'}
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
--- load model
-model = cnn_model(classes)
-
--- retrieve parameters and gradients from model
-parameters, gradParameters = model:getParameters()
-
--- loss functions
-criterion = nn.ClassNLLCriterion()
-
 -- load GPU
 if opt.gpuid >= 0 then
 	local ok, cunn = pcall(require, 'cunn')
@@ -61,10 +52,15 @@ if opt.gpuid >= 0 then
 end
 
 if opt.gpuid >= 0 then
-	-- convert models to cuda
-	model:cuda()
-	criterion:cuda()
+	model = cnn_model(classes):cuda()
+	criterion = nn.ClassNLLCriterion():cuda()
+else
+	model = cnn_model(classes)
+	criterion = nn.ClassNLLCriterion()
 end
+
+-- retrieve parameters and gradients from model
+parameters, gradParameters = model:getParameters()
 
 
 function train(dataset)
