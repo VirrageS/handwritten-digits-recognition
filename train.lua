@@ -28,8 +28,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 trainData = loadTrainDataset()
 testData = loadTestDataset()
 
--- classification classes
-classes = {'1','2','3','4','5','6','7','8','9','10'}
+classes = {'1','2','3','4','5','6','7','8','9','10'} -- classification classes
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
@@ -39,6 +38,7 @@ if opt.gpuid >= 0 then
 	local ok2, cutorch = pcall(require, 'cutorch')
 	if not ok then print('package cunn not found!') end
 	if not ok2 then print('package cutorch not found!') end
+
 	if ok and ok2 then
 		print('using CUDA on GPU ' .. opt.gpuid .. '...')
 		cutorch.setDevice(opt.gpuid + 1) -- note +1 to make it 0 indexed! sigh lua
@@ -51,17 +51,17 @@ if opt.gpuid >= 0 then
 	end
 end
 
+model = cnn_model(classes) -- load model
+criterion = nn.ClassNLLCriterion() -- loss function
+
+-- if cuda is enabled
 if opt.gpuid >= 0 then
-	model = cnn_model(classes):cuda()
-	criterion = nn.ClassNLLCriterion():cuda()
-else
-	model = cnn_model(classes)
-	criterion = nn.ClassNLLCriterion()
+	model = model:cuda()
+	criterion = criterion:cuda()
 end
 
--- retrieve parameters and gradients from model
+-- retrieve parameters and gradients from model (cuda's or normal one)
 parameters, gradParameters = model:getParameters()
-
 
 function train(dataset)
 	for t = 1, opt.trainDataSize, opt.batchSize do
