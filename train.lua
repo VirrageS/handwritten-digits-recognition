@@ -61,7 +61,16 @@ end
 -- retrieve parameters and gradients from model (cuda's or normal one)
 parameters, gradParameters = model:getParameters()
 
+-- SGD step:
+sgdState = {
+	learningRate = opt.learningRate,
+	learningRateDecay = 1e-4,
+	momentum = 0, weightDecay = 0
+}
+
 function train(dataset)
+	local currentLoss = 0
+
 	for t = 1, opt.trainDataSize, opt.batchSize do
 		-- create mini batch
 		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
@@ -90,32 +99,26 @@ function train(dataset)
 				targets = targets:float():cuda()
 			end
 
-			-- compute outputs
-			local outputs = model:forward(inputs)
-			local f = criterion:forward(outputs, targets)
-
-			-- estimate df/dW
-			local df_do = criterion:backward(outputs, targets)
-			model:backward(inputs, df_do)
+			-- evaluate the loss function and its derivative wrt x,
+			-- for that sample
+			local loss_x = criterion:forward(model:forward(inputs), targets)
+			model:backward(inputs, criterion:backward(model.output, targets))
 
 			for i = 1, opt.batchSize do
-				confusion:add(outputs[i], targets[i])
+				confusion:add(model.output[i], targets[i])
 			end
 
-			return f, gradParameters
+			return loss_x, gradParameters
 		end
 
-		-- SGD step:
-		sgdState = sgdState or {
-			learningRate = opt.learningRate,
-			momentum = 0,
-			learningRateDecay = 5e-7
-		}
-		optim.sgd(feval, parameters, sgdState)
+		_, fs = optim.sgd(feval, parameters, sgdState)
+		currentLoss = currentLoss + fs[1]
 
 		-- display progress
 		xlua.progress(t, opt.trainDataSize)
 	end
+
+	print('\n\nCurrent loss: ' .. tostring(currentLoss / opt.trainDataSize) .. '\n')
 
 	-- print confusion matrix
 	print(confusion)
