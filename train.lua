@@ -24,14 +24,6 @@ torch.setnumthreads(opt.threads)
 torch.manualSeed(opt.seed)
 torch.setdefaulttensortype('torch.FloatTensor')
 
--- load datasets
-trainData = loadTrainDataset()
-testData = loadTestDataset()
-
-classes = {'1','2','3','4','5','6','7','8','9','10'} -- classification classes
--- this matrix records the current confusion across classes
-confusion = optim.ConfusionMatrix(classes)
-
 -- load GPU
 if opt.gpuid >= 0 then
 	local ok, cunn = pcall(require, 'cunn')
@@ -51,11 +43,17 @@ if opt.gpuid >= 0 then
 	end
 end
 
+-- load datasets
+trainData = loadTrainDataset()
+testData = loadTestDataset()
+
+classes = {'1','2','3','4','5','6','7','8','9','10'} -- classification classes
+-- this matrix records the current confusion across classes
+confusion = optim.ConfusionMatrix(classes)
+
 model = cnn_model(classes) -- load model
 criterion = nn.ClassNLLCriterion() -- loss function
-
--- if cuda is enabled
-if opt.gpuid >= 0 then
+if opt.gpuid >= 0 then -- if cuda is enabled convert models to cuda models
 	model = model:cuda()
 	criterion = criterion:cuda()
 end
@@ -85,6 +83,8 @@ function train(dataset)
 			-- reset gradients
 			gradParameters:zero()
 
+			-- if we use cuda we must convert torchTensor to cudaTensor
+			-- because our model requires it
 			if opt.gpuid >= 0 then
 				inputs = inputs:float():cuda()
 				targets = targets:float():cuda()
@@ -134,6 +134,8 @@ function test(dataset)
 			k = k + 1
 		end
 
+		-- if we use cuda we must convert torchTensor to cudaTensor
+		-- because our model requires it
 		if opt.gpuid >= 0 then
 			inputs = inputs:float():cuda()
 			targets = targets:float():cuda()
