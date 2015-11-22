@@ -4,6 +4,10 @@ require './load_dataset'
 require './cnn_model'
 require './linear_model'
 
+function toboolean(X)
+	return not not X
+end
+
 op = xlua.OptionParser('train.lua [options]')
 op:option{'-train_size', '--traing_data_size', action='store', dest='trainDataSize', help='size of training sets', default=60000}
 op:option{'-test_size', '--test_data_size', action='store', dest='testDataSize', help='size of testing sets', default=10000}
@@ -12,6 +16,7 @@ op:option{'-batch', '--batch_size', action='store', dest='batchSize', help='numb
 op:option{'-t', '--threads', action='store', dest='threads', help='number of threads used by networks', default=2}
 op:option{'-seed', '--seed', action='store', dest='seed', help='seed', default=130}
 op:option{'-gpuid', '--enable_gpu', action='store', dest='gpuid', help='loads gpu (needs cunn and cutorch)', default=-1}
+op:option{'-kaggle', '--enable_kaggle', action='store', dest='kaggleEnabled', help='loads gpu (needs cunn and cutorch)', default=nil}
 
 opt = op:parse()
 opt.batchSize = tonumber(opt.batchSize)
@@ -19,6 +24,7 @@ opt.learningRate = tonumber(opt.learningRate)
 opt.threads = tonumber(opt.threads)
 opt.gpuid = tonumber(opt.gpuid)
 opt.seed = tonumber(opt.seed)
+opt.kaggleEnabled = toboolean(opt.kaggleEnabled)
 
 torch.setnumthreads(opt.threads)
 torch.manualSeed(opt.seed)
@@ -43,16 +49,32 @@ if opt.gpuid >= 0 then
 	end
 end
 
--- load datasets
-trainData = loadTrainDataset()
-testData = loadTestDataset()
+if opt.kaggleEnabled then
+	kaggleTrainData = loadKaggleTrainDataset()
+	kaggleTestData = loadKaggleTestDataset()
 
-classes = {'1','2','3','4','5','6','7','8','9','10'} -- classification classes
+	geometry = {28, 28}
+	classes = {'0','1','2','3','4','5','6','7','8','9'} -- classification classes
+else
+	-- load datasets
+	trainData = loadTrainDataset()
+	testData = loadTestDataset()
+
+	geometry = {32, 32}
+	classes = {'1','2','3','4','5','6','7','8','9','10'} -- classification classes
+end
+
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
-model = cnn_model(classes) -- load model
+if opt.kaggleEnabled then
+	model = cnn_kaggle_model(classes) -- load model
+else
+	model = cnn_model(classes) -- load model
+end
+
 criterion = nn.ClassNLLCriterion() -- loss function
+
 if opt.gpuid >= 0 then -- if cuda is enabled convert models to cuda models
 	model = model:cuda()
 	criterion = criterion:cuda()
@@ -73,7 +95,7 @@ function train(dataset)
 
 	for t = 1, opt.trainDataSize, opt.batchSize do
 		-- create mini batch
-		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
+		local inputs = torch.Tensor(opt.batchSize, 1, geometry[1], geometry[2])
 		local targets = torch.Tensor(opt.batchSize)
 
 		local k = 1
@@ -126,14 +148,28 @@ function train(dataset)
 end
 
 function test(dataset)
+
+	if opt.kaggleEnabled then
+		-- Opens a file in append mode
+		os.execute('rm -f data/submission.csv; touch data/submission.csv')
+		results = io.open("data/submission.csv", "a")
+	end
+
+
 	for t = 1, opt.testDataSize, opt.batchSize do
 		-- create mini batch
-		local inputs = torch.Tensor(opt.batchSize, 1, 32, 32)
-		local targets = torch.Tensor(opt.batchSize)
+		local inputs = torch.Tensor(opt.batchSize, 1, geometry[1], geometry[2])
+		if not opt.kaggleEnabled then
+			targets = torch.Tensor(opt.batchSize)
+		end
+
 		local k = 1
 		for i = t, math.min(t + opt.batchSize - 1, opt.testDataSize) do
 			inputs[k] = dataset[i][1]:clone() -- copy data
-			targets[k] = dataset[i][2]:clone():squeeze() -- copy label
+
+			if not opt.kaggleEnabled then
+				targets[k] = dataset[i][2]:clone():squeeze() -- copy label
+			end
 			k = k + 1
 		end
 
@@ -141,26 +177,50 @@ function test(dataset)
 		-- because our model requires it
 		if opt.gpuid >= 0 then
 			inputs = inputs:float():cuda()
-			targets = targets:float():cuda()
+
+			if not opt.kaggleEnabled then
+				targets = targets:float():cuda()
+			end
 		end
 
 		-- predict
 		local predicted = model:forward(inputs)
 
-		for i = 1, opt.batchSize do
-			confusion:add(predicted[i], targets[i])
+		if opt.kaggleEnabled then
+			local _, prediction = predicted:max(1)
+			prediction = prediction:transpose(1, 2)
+
+			for i = 1, prediction:size(1) do
+				results:write(tostring(prediction[i][1] - 1) .. '\n')
+			end
+		else
+			for i = 1, opt.batchSize do
+				confusion:add(predicted[i], targets[i])
+			end
 		end
 
 		-- dispaly progress
 		xlua.progress(t, opt.testDataSize)
 	end
 
-	-- print confusion matrix
-	print(confusion)
-	confusion:zero()
+	if opt.kaggleEnabled then
+		-- closes the open file
+		results:close()
+	end
+
+	if not opt.kaggleEnabled then
+		-- print confusion matrix
+		print(confusion)
+		confusion:zero()
+	end
 end
 
 while true do
-	train(trainData)
-	test(testData)
+	if opt.kaggleEnabled then
+		train(kaggleTrainData)
+		test(kaggleTestData)
+	else
+		train(trainData)
+		test(testData)
+	end
 end
