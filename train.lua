@@ -50,6 +50,7 @@ if opt.gpuid >= 0 then
 end
 
 if opt.kaggleEnabled then
+	-- load Kaggle datasets
 	kaggleTrainData = loadKaggleTrainDataset()
 	kaggleTestData = loadKaggleTestDataset()
 

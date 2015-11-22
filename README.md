@@ -1,16 +1,16 @@
 # (MNIST) Handwritten Digits Recognition
 
-Convolution neural network to recognize handwritten digits (MNIST dataset).
+Convolutional neural network to recognize handwritten digits (MNIST dataset).
 
 MNIST Dataset is downloaded from `https://s3.amazonaws.com/torch7/data/mnist.t7.tgz` which contains images (**32x32**)
 with classes from 1 to 10 divided into **60'000 training images** and **10'000 test images**.
-To use it you have to download [Torch](http://torch.ch/docs/getting-started.html#_) first.
+To use this script you have to download [Torch](http://torch.ch/docs/getting-started.html#_) first.
 
-Below you can see example usage of this neural network.
+Below you can see example usage of this convolutional neural network.
 
 ## Kaggle
 
-You can use this model to predict output for Kaggle [Digit Recognizer](https://www.kaggle.com/c/digit-recognizer) challenge.
+You can also use this model to predict output for Kaggle [Digit Recognizer](https://www.kaggle.com/c/digit-recognizer) challenge.
 Unfortunately Kaggle MNIST Dataset have different images geometry (**28x28**) and different file format what makes code a little bit uglier :C
 Kaggle dataset consist of **42'000 training images** with classes from 0 to 9 and **28'000 images to predict**.
 In `cnn_model.lua` you can find exact model which is used in learning.
@@ -21,7 +21,7 @@ To use Kaggle model type:
 
 **Tip:** after each iteration script saves new predictions into `data/submission.csv` file.
 
-Max score I have achieved (with about 10 minutes of learning) is: **0.98686**
+Max score I have achieved on Kaggle (with about 10 minutes of learning): **0.98686**
 
 ## Parameters
 
@@ -40,12 +40,12 @@ You can set parameters which will help you to better control the network.
 
 ## Examples
 
-Normal:
+### Normal:
 
 	$ th train.lua --learning_rate 0.01 --batch_size 100
 	$ th train.lua --learning_rate 0.02 --threads 8 --traing_data_size 2000 --test_data_size 1000
 
-Kaggle:
+### Kaggle:
 
 	$ th train.lua -kaggle 1 -train_size 42000 -test_size 28000
 	$ th train.lua -kaggle 1 -train_size 42000 -test_size 28000 --learning_rate 0.005 --batch_size 50
