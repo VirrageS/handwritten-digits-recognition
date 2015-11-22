@@ -152,7 +152,8 @@ function test(dataset)
 	if opt.kaggleEnabled then
 		-- Opens a file in append mode
 		os.execute('rm -f data/submission.csv; touch data/submission.csv')
-		results = io.open("data/submission.csv", "a")
+		results = io.open('data/submission.csv', "a")
+		results:write('"ImageId","Label"\n')
 	end
 
 
@@ -191,7 +192,7 @@ function test(dataset)
 			prediction = prediction:transpose(1, 2)
 
 			for i = 1, prediction:size(1) do
-				results:write(tostring(prediction[i][1] - 1) .. '\n')
+				results:write('' .. (t - 1 + i) .. ',"' .. tostring(prediction[i][1] - 1) .. '"\n')
 			end
 		else
 			for i = 1, opt.batchSize do
