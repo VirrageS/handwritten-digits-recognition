@@ -28,7 +28,7 @@ function cnn_model(classes) -- 99,22% on best iteration
 end
 
 -- convolution neural network model
-function cnn_kaggle_model(classes) -- 99,22% on best iteration
+function cnn_kaggle_model(classes) -- 99,72% on best iteration
 	local model = nn.Sequential()
 	model:add(nn.SpatialConvolutionMM(1, 20, 5, 5))
 	model:add(nn.ReLU())

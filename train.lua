@@ -16,7 +16,7 @@ op:option{'-batch', '--batch_size', action='store', dest='batchSize', help='numb
 op:option{'-t', '--threads', action='store', dest='threads', help='number of threads used by networks', default=2}
 op:option{'-seed', '--seed', action='store', dest='seed', help='seed', default=130}
 op:option{'-gpuid', '--enable_gpu', action='store', dest='gpuid', help='loads gpu (needs cunn and cutorch)', default=-1}
-op:option{'-kaggle', '--enable_kaggle', action='store', dest='kaggleEnabled', help='loads gpu (needs cunn and cutorch)', default=nil}
+op:option{'-kaggle', '--enable_kaggle', action='store', dest='kaggleEnabled', help='switches to Kaggle challenge prediction', default=nil}
 
 opt = op:parse()
 opt.batchSize = tonumber(opt.batchSize)
@@ -38,7 +38,7 @@ if opt.gpuid >= 0 then
 	if not ok2 then print('package cutorch not found!') end
 
 	if ok and ok2 then
-		print('using CUDA on GPU ' .. opt.gpuid .. '...')
+		print('Using CUDA on GPU ' .. opt.gpuid .. '...')
 		cutorch.setDevice(opt.gpuid + 1) -- note +1 to make it 0 indexed! sigh lua
 		cutorch.manualSeed(opt.seed)
 	else
@@ -91,8 +91,6 @@ sgdState = {
 }
 
 function train(dataset)
-	local currentLoss = 0
-
 	for t = 1, opt.trainDataSize, opt.batchSize do
 		-- create mini batch
 		local inputs = torch.Tensor(opt.batchSize, 1, geometry[1], geometry[2])
@@ -134,13 +132,10 @@ function train(dataset)
 		end
 
 		_, fs = optim.sgd(feval, parameters, sgdState)
-		currentLoss = currentLoss + fs[1]
 
 		-- display progress
 		xlua.progress(t, opt.trainDataSize)
 	end
-
-	print('\n\nCurrent loss: ' .. tostring(currentLoss / opt.trainDataSize) .. '\n')
 
 	-- print confusion matrix
 	print(confusion)
