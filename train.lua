@@ -188,11 +188,9 @@ function test(dataset)
 		local predicted = model:forward(inputs)
 
 		if opt.kaggleEnabled then
-			local _, prediction = predicted:max(1)
-			prediction = prediction:transpose(1, 2)
-
+			local _, prediction = predicted:max(2)
 			for i = 1, prediction:size(1) do
-				results:write('' .. (t - 1 + i) .. ',"' .. tostring(prediction[i][1] - 1) .. '"\n')
+				results:write('' .. (t - 1 + i) .. ',"' .. classes[prediction[i][1]] .. '"\n')
 			end
 		else
 			for i = 1, opt.batchSize do
